@@ -10,8 +10,22 @@ export default class Load extends Phaser.Scene {
         this.load.atlas("platformer_characters", "tilemap-characters-packed.png", "tilemap-characters-packed.json");
 
         // Load tilemap information
+        this.load.image("gray_pixel", "gray_pixel.png");
+        this.load.image("white_pixel", "white_pixel.png");
         this.load.image("tilemap_tiles", "kenney_pixel-line-platformer/Tilemap/tilemap_packed.png");                         // Packed tilemap
         this.load.tilemapTiledJSON("main_level", "main_level.tmj");   // Tilemap in JSON
+
+        //Load sound effects
+        this.load.audio("walkLeftSFX", 'Sounds/move-a.ogg');
+        this.load.audio("walkRightSFX", 'Sounds/move-b.ogg');
+        this.load.audio("pickupSFX", 'Sounds/coin-a.ogg');
+        this.load.audio("pickup2SFX", 'Sounds/coin-b.ogg');
+        this.load.audio("pickup3SFX", 'Sounds/coin-c.ogg');
+        this.load.audio("pickup4SFX", 'Sounds/coin-d.ogg');
+        this.load.audio("dashSFX", 'Sounds/shoot-g.ogg');
+        this.load.audio("jumpSFX", 'Sounds/jump-a.ogg');
+        this.load.audio("doubleJumpSFX", 'Sounds/jump-b.ogg');
+
 
         // Load the tilemap as a spritesheet
         this.load.spritesheet("tilemap_sheet", "kenney_pixel-line-platformer/Tilemap/tilemap_packed.png", {

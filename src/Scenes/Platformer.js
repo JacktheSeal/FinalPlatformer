@@ -13,17 +13,28 @@ export default class Platformer extends Phaser.Scene {
         this.PARTICLE_VELOCITY = 50;
         this.SCALE = 2.0;
 
+
+        //double jump check
+        this.doubleJumpUsed = false;
+
         // Initialize a class variable "my" which is an object.
         // The object has two properties, both of which are objects
         //  - "sprite" holds bindings (pointers) to created sprites
         //  - "text"   holds bindings to created bitmap text objects
         this.my = {sprite: {}, text: {}, vfx: {}};
+
     }
 
     create() {
-        // Create a new tilemap game object which uses 18x18 pixel tiles, and is
-        // 45 tiles wide and 25 tiles tall.
+
+
+
+        // Create a new tilemap game object which uses 16x16 pixel tiles, and is
+        // 80 tiles wide and 25 tiles tall.
         this.map = this.add.tilemap("main_level", 16, 16, 80, 20);
+
+        //set world boundary
+        this.physics.world.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
 
         // Add a tileset to the map
         // First parameter: name we gave the tileset in Tiled
@@ -95,6 +106,7 @@ export default class Platformer extends Phaser.Scene {
 
         // set up player avatar
         this.my.sprite.player = this.physics.add.sprite(this.spawnpoint[0].x, this.spawnpoint[0].y, "platformer_characters", "tile_0000.png");
+        this.my.sprite.player.setSize(10,20);
         this.my.sprite.player.setCollideWorldBounds(true);
 
         // Enable collision handling
@@ -102,8 +114,24 @@ export default class Platformer extends Phaser.Scene {
 
         // TODO: Add flower collision handler
         // Handle collision detection with flowers
+        this.pickupCounter = 0;
         this.physics.add.overlap(this.my.sprite.player, this.flowerGroup, (obj1, obj2) => {
+
+            const index = this.pickupCounter % 4;
+            console.log(index);
+
+            if (index == 0) {
+                this.pickupSFX.play()
+            } else if (index == 1) {
+                this.pickup2SFX.play();
+            } else if (index == 2) {
+                this.pickup3SFX.play();
+            } else {
+                this.pickup4SFX.play();
+            }
             obj2.destroy(); // remove flower on overlap
+
+            this.pickupCounter++;
         });
 
         // Handle collision detection with endpoint
@@ -158,32 +186,152 @@ export default class Platformer extends Phaser.Scene {
         // TODO: Add movement vfx here
         // movement vfx
 
-        this.my.vfx.walking = this.add.particles(0, 0, "kenny-particles", {
-            frame: ['smoke_03.png', 'smoke_09.png'],
+        this.my.vfx.walking = this.add.particles(0, 5, "white_pixel",  {
             // TODO: Try: add random: true
             scale: {start: 0.03, end: 0.1},
             // TODO: Try: maxAliveParticles: 8,
             lifespan: 350,
             // TODO: Try: gravityY: -400,
-            gravityY: -400,
+            gravityY: -10,
             alpha: {start: 1, end: 0.1}, 
         });
 
         this.my.vfx.walking.stop();
 
+
+        //create camera group
+        this.cameraZones = this.map.createFromObjects("CameraZones", {
+            name: "zone"
+        });
+
+        this.cameraZones.forEach(zone => {
+            zone.setVisible(false);
+        });
+
+        console.log(this.cameraZones);
+
+        this.cameraZoneGroup = this.add.group(this.cameraZones);
+
+        this.physics.world.enable(this.cameraZoneGroup, Phaser.Physics.Arcade.STATIC_BODY);
+
+        console.log(this.cameraZoneGroup);
+
         // TODO: add camera code here
         this.cameras.main.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
-        this.cameras.main.startFollow(this.my.sprite.player, true, 0.25, 0.25); // (target, [,roundPixels][,lerpX][,lerpY])
-        this.cameras.main.setDeadzone(50, 50);
+        //this.cameras.main.startFollow(this.my.sprite.player, true, 0.25, 0.25); // (target, [,roundPixels][,lerpX][,lerpY])
+        //this.cameras.main.setDeadzone(50, 50);
         this.cameras.main.setZoom(this.SCALE);
+
+        //this.cameras.main.setScroll(0,0);
+
+        //create camera movement
+        this.cameraTransitioning = false;
+        this.currentZone = null;
+
+        // this.physics.add.overlap(
+        //     this.my.sprite.player,
+        //     this.cameraZoneGroup,
+        //     (player, zone) => {
+        //         console.log("collided!");
+        //         const cam = this.cameras.main;
+
+        //         const targetX = zone.getData("cameraX");
+        //         const targetY = zone.getData("cameraY");
+
+        //         cam.pan(targetX, targetY, 500, "Power2");
+        //     }
+        // )
+
+        this.physics.add.overlap(
+            this.my.sprite.player,
+            this.cameraZoneGroup,
+            (player, zone) => {
+
+                // prevent spam / multi-zone conflicts
+                if (this.cameraTransitioning) return;
+
+                // prevent re-triggering same zone
+                if (this.currentZone === zone) return;
+
+                this.cameraTransitioning = true;
+                this.currentZone = zone;
+
+                const cam = this.cameras.main;
+
+                const targetX = zone.getData("cameraX");
+                const targetY = zone.getData("cameraY");
+
+                cam.pan(targetX, targetY, 300, "Power2", true, (cam, progress) => {
+                    if (progress === 1) {
+                        this.cameraTransitioning = false;
+                    }
+                });
+            }
+        );
+
+
+        
+
+        //make audio work good i guess
+        this.soundLocked = true;
+        this.audioReady = false;
+        
+        this.rightKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
+
+        //to make sure you dont crash the game before playing
+        this.spacePressed = false;
+        //overengineered because I was trying to make it work with right move. 
+        this.unlockAudio = () => {
+            this.spacePressed = true;
+            console.log("state:", this.sound.context.state);
+
+            if (!this.soundLocked) return;
+
+            if (this.sound.context.state === 'suspended') {
+                this.sound.context.resume().then(() => {
+                    console.log("made it into resume?");
+                    this.soundLocked = false;
+                    this.audioReady = true;
+
+                    console.log("Audio unlocked");
+
+                    this.createAudio();
+                });
+            } else {
+                // already running → don't wait on resume
+                console.log("Audio already running");
+                this.soundLocked = false;
+                this.audioReady = true;
+                this.createAudio();
+            }
+        };
+
+        this.input.keyboard.once('keydown-SPACE', this.unlockAudio);
+
+        
+
+        
+        this.cameras.main.centerOn(this.my.sprite.player.x, this.my.sprite.player.y);
+
 
     }
 
     update() {
+
+        if (!this.spacePressed) {
+            return;
+        }
+
+        
+        //reset double jump
+        if (this.my.sprite.player.body.blocked.down) {
+            this.doubleJumpUsed = false;
+        }
+
+
         const onGround = this.my.sprite.player.body.blocked.down;
         let accel;
         let drag;
-
         if (onGround) {
             accel = this.ACCELERATION;
             drag = this.DRAG;
@@ -192,6 +340,17 @@ export default class Platformer extends Phaser.Scene {
             drag = 50;
         }
         if(this.cursors.left.isDown) {
+            if (this.audioReady && this.walkLeftSFX && this.my.sprite.player.body.blocked.down) {
+                if(this.walkRightSFX) {
+                    if(this.walkRightSFX.isPlaying) {
+                        this.walkRightSFX.stop();
+                    }
+                }
+                if (!this.walkLeftSFX.isPlaying) {
+                    this.walkLeftSFX.play();
+                }
+            }
+
             this.my.sprite.player.setAccelerationX(-this.ACCELERATION);
             this.my.sprite.player.resetFlip();
             this.my.sprite.player.anims.play('walk', true);
@@ -209,6 +368,16 @@ export default class Platformer extends Phaser.Scene {
             }
 
         } else if(this.cursors.right.isDown) {
+            if (this.audioReady && this.walkRightSFX && this.my.sprite.player.body.blocked.down) {
+                if(this.walkLeftSFX) {
+                    if(this.walkLeftSFX.isPlaying) {
+                        this.walkLeftSFX.stop();
+                    }
+                }
+                if (!this.walkRightSFX.isPlaying) {
+                    this.walkRightSFX.play();
+                }
+            }
             this.my.sprite.player.setAccelerationX(this.ACCELERATION);
             this.my.sprite.player.setFlip(true, false);
             this.my.sprite.player.anims.play('walk', true);
@@ -233,19 +402,46 @@ export default class Platformer extends Phaser.Scene {
             this.my.sprite.player.anims.play('idle');
             // TODO: have the vfx stop playing
             this.my.vfx.walking.stop();
+
+            //have walking sfx stop
+            if(this.walkLeftSFX) {
+                if(this.walkLeftSFX.isPlaying) {
+                    this.walkLeftSFX.stop();
+                }
+            }
+
+            if(this.walkRightSFX) {
+                if(this.walkRightSFX.isPlaying) {
+                    this.walkRightSFX.stop();
+                }
+            }
         }
 
         // player jump
         // note that we need body.blocked rather than body.touching b/c the former applies to tilemap tiles and the latter to the "ground"
         if(!this.my.sprite.player.body.blocked.down) {
             this.my.sprite.player.anims.play('jump');
+            this.my.vfx.walking.stop();
+            this.walkLeftSFX?.stop();
+            this.walkRightSFX?.stop();
         }
         if(this.my.sprite.player.body.blocked.down && Phaser.Input.Keyboard.JustDown(this.cursors.up)) {
+            this.jumpSFX.play();
             this.my.sprite.player.body.setVelocityY(this.JUMP_VELOCITY);
         }
 
-        if (Phaser.Input.Keyboard.JustDown(this.cursors.shift)) {
+        //double jump
+        if(!this.my.sprite.player.body.blocked.down && Phaser.Input.Keyboard.JustDown(this.cursors.up) && !this.doubleJumpUsed) {
+            this.doubleJumpSFX.play();
+            this.my.sprite.player.body.setVelocityY(this.JUMP_VELOCITY);
+            this.doubleJumpUsed = true;
+        }
 
+        //dash
+        this.isDashing = false;
+        if (Phaser.Input.Keyboard.JustDown(this.cursors.shift) && !this.isDashing) {
+            this.dashSFX.play();
+            this.isDashing = true;
             console.log("shift pressed");
 
             // pause vertical movement
@@ -268,14 +464,16 @@ export default class Platformer extends Phaser.Scene {
                 targets: this.my.sprite.player,
                 scaleX: 1.4,
                 scaleY: 0.8,
-                duration: 100,
+                duration: 80,
                 yoyo: true
             });
 
             // restore gravity after dash
             this.time.delayedCall(150, () => {
                 this.my.sprite.player.body.allowGravity = true;
-                this.my.sprite.player.body.velocity.x * 0.35; // stop horizontal movement after dash
+
+                this.my.sprite.player.body.velocity.x = this.my.sprite.player.body.velocity.x * 0.35; // stop horizontal movement after dash
+                this.isDashing = false;
             });
         }
 
@@ -283,4 +481,18 @@ export default class Platformer extends Phaser.Scene {
             this.scene.restart();
         }
     }
+
+    createAudio() {
+        this.walkLeftSFX = this.sound.add("walkLeftSFX", { loop: true, volume: 0.05 });
+        this.walkRightSFX = this.sound.add("walkRightSFX", { loop: true, volume: 0.05 });
+        this.pickupSFX = this.sound.add("pickupSFX", { volume: 0.2 });
+        this.pickup2SFX = this.sound.add("pickup2SFX", { volume: 0.2 });
+        this.pickup3SFX = this.sound.add("pickup3SFX", { volume: 0.2 });
+        this.pickup4SFX = this.sound.add("pickup4SFX", { volume: 0.2 });
+        this.dashSFX = this.sound.add("dashSFX", { volume: 0.2 });
+        this.jumpSFX = this.sound.add("jumpSFX", { volume: 0.2 });
+        this.doubleJumpSFX = this.sound.add("doubleJumpSFX", { volume: 0.2 });
+    }
 }
+
+

@@ -34,7 +34,10 @@ let config = {
             }
         }
     },
-    width: 1440,
+    audio: {
+    disableWebAudio: false
+    },
+    width: 640,
     height: 640,
     scene: [Load, Platformer, End]
 }
@@ -44,3 +47,7 @@ const SCALE = 2.0;
 var my = {sprite: {}, text: {}, vfx: {}};
 
 const game = new Phaser.Game(config);
+
+game.events.on('ready', () => {
+    game.sound.pauseOnBlur = false;
+});
