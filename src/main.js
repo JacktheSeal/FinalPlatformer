@@ -13,6 +13,11 @@
 "use strict"
 
 // game config
+
+import Load from "./Scenes/Load.js";
+import Platformer from "./Scenes/Platformer.js";
+import End from "./Scenes/End.js";
+
 let config = {
     parent: 'phaser-game',
     type: Phaser.CANVAS,
@@ -30,8 +35,8 @@ let config = {
         }
     },
     width: 1440,
-    height: 900,
-    scene: [Load, Platformer]
+    height: 640,
+    scene: [Load, Platformer, End]
 }
 
 var cursors;
