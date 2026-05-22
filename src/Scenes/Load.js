@@ -26,6 +26,7 @@ export default class Load extends Phaser.Scene {
         this.load.audio("jumpSFX", 'Sounds/jump-a.ogg');
         this.load.audio("doubleJumpSFX", 'Sounds/jump-b.ogg');
         this.load.audio("deathSFX", 'Sounds/lose-a.ogg');
+        this.load.audio("bgMusic", 'bgMusic.mp3');
 
 
         // Load the tilemap as a spritesheet

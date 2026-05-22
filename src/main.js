@@ -51,3 +51,4 @@ const game = new Phaser.Game(config);
 game.events.on('ready', () => {
     game.sound.pauseOnBlur = false;
 });
+document.getElementById("description").innerText = "Press SPACE to start";

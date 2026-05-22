@@ -41,7 +41,24 @@ export default class Platformer extends Phaser.Scene {
 
         // Create layers
         this.backgroundLayer = this.map.createLayer("Background", this.tileset, 0, 0);
-        this.cloudLayer = this.map.createLayer("Clouds", this.tileset, 0, 0);
+        this.cloudLayer1 = this.map.createLayer("Clouds", this.tileset, 0, 0);
+        console.log(this.cloudLayer1);
+        this.cloudLayer2 = this.map.createBlankLayer(
+            "CloudsCopy",
+            this.tileset,
+            this.map.widthInPixels,
+            0,
+            this.map.width,
+            this.map.height
+        );
+
+        this.cloudLayer2.putTilesAt(
+            this.cloudLayer1.layer.data.map(row =>
+                row.map(tile => tile.index)
+            ),
+            0,
+            0
+        );
         this.groundLayer = this.map.createLayer("Ground-n-Platforms", this.tileset, 0, 0);
         this.foregroundLayer = this.map.createLayer("Foreground", this.tileset, 0, 0);
 
@@ -187,6 +204,7 @@ export default class Platformer extends Phaser.Scene {
                 });
         
                 this.time.delayedCall(2500, () => {
+                    this.bgMusic.stop();
                     this.scene.start("End");
                 });
             }
@@ -300,13 +318,13 @@ export default class Platformer extends Phaser.Scene {
             zone.setVisible(false);
         });
 
-        console.log(this.cameraZones);
+        // console.log(this.cameraZones);
 
         this.cameraZoneGroup = this.add.group(this.cameraZones);
 
         this.physics.world.enable(this.cameraZoneGroup, Phaser.Physics.Arcade.STATIC_BODY);
 
-        console.log(this.cameraZoneGroup);
+        //console.log(this.cameraZoneGroup);
 
         // TODO: add camera code here
         this.cameras.main.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
@@ -374,24 +392,26 @@ export default class Platformer extends Phaser.Scene {
         this.spacePressed = false;
         //overengineered because I was trying to make it work with right move. 
         this.unlockAudio = () => {
+            document.getElementById("description").style.display = "none";
             this.spacePressed = true;
-            console.log("state:", this.sound.context.state);
+            //console.log("state:", this.sound.context.state);
 
             if (!this.soundLocked) return;
 
             if (this.sound.context.state === 'suspended') {
                 this.sound.context.resume().then(() => {
-                    console.log("made it into resume?");
+                    //console.log("made it into resume?");
                     this.soundLocked = false;
                     this.audioReady = true;
 
-                    console.log("Audio unlocked");
+                    //console.log("Audio unlocked");
 
                     this.createAudio();
+                    this.bgMusic.play();
                 });
             } else {
                 // already running → don't wait on resume
-                console.log("Audio already running");
+                //console.log("Audio already running");
                 this.soundLocked = false;
                 this.audioReady = true;
                 this.createAudio();
@@ -410,8 +430,18 @@ export default class Platformer extends Phaser.Scene {
 
     update() {
 
-        if (!this.spacePressed) {
+        if (!this.spacePressed || !this.audioReady) {
             return;
+        }
+        this.cloudLayer1.x += 0.1;
+        this.cloudLayer2.x += 0.1;
+
+        if (this.cloudLayer1.x >= this.map.widthInPixels) {
+            this.cloudLayer1.x = this.cloudLayer2.x - this.map.widthInPixels;
+        }
+
+        if (this.cloudLayer2.x >= this.map.widthInPixels) {
+            this.cloudLayer2.x = this.cloudLayer1.x - this.map.widthInPixels;
         }
 
         
@@ -559,7 +589,7 @@ export default class Platformer extends Phaser.Scene {
         if (Phaser.Input.Keyboard.JustDown(this.cursors.shift) && !this.isDashing) {
             this.dashSFX.play();
             this.isDashing = true;
-            console.log("shift pressed");
+            //console.log("shift pressed");
 
             // pause vertical movement
             this.my.sprite.player.setVelocityY(0);
@@ -570,13 +600,13 @@ export default class Platformer extends Phaser.Scene {
             // dash direction
             if (this.my.sprite.player.flipX) {
                 // facing right
-                this.my.sprite.player.setVelocityX(700);
-                console.log("dashing left");
+                this.my.sprite.player.setVelocityX(500);
+                //console.log("dashing left");
                 this.my.vfx.dashRight.explode(20, this.my.sprite.player.x, this.my.sprite.player.y);
             } else {
                 // facing left
-                this.my.sprite.player.setVelocityX(-700);
-                console.log("dashing right");
+                this.my.sprite.player.setVelocityX(-500);
+                //console.log("dashing right");
                 this.my.vfx.dashLeft.explode(20, this.my.sprite.player.x, this.my.sprite.player.y);
             }
 
@@ -617,6 +647,7 @@ export default class Platformer extends Phaser.Scene {
         this.jumpSFX = this.sound.add("jumpSFX", { volume: 0.2 });
         this.doubleJumpSFX = this.sound.add("doubleJumpSFX", { volume: 0.2 });
         this.deathSFX = this.sound.add("deathSFX", { volume: 0.2 });
+        this.bgMusic = this.sound.add("bgMusic", {volume: 0.2}, {loop: true});
     }
 }
 
