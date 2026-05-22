@@ -33,8 +33,6 @@ export default class Platformer extends Phaser.Scene {
         // 80 tiles wide and 25 tiles tall.
         this.map = this.add.tilemap("main_level", 16, 16, 80, 20);
 
-        //set world boundary
-        this.physics.world.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
 
         // Add a tileset to the map
         // First parameter: name we gave the tileset in Tiled
@@ -114,6 +112,15 @@ export default class Platformer extends Phaser.Scene {
         this.my.sprite.player = this.physics.add.sprite(this.spawnpoint[0].x, this.spawnpoint[0].y, "platformer_characters", "tile_0000.png");
         this.my.sprite.player.setSize(10,20);
         this.my.sprite.player.setCollideWorldBounds(false);
+
+
+        // collide with left/right/top only
+        this.my.sprite.player.setCollideWorldBounds(true);
+
+        // disable collision on bottom world bound
+        this.physics.world.setBoundsCollision(true, true, true, false);
+
+        
 
         // Enable collision handling
         this.physics.add.collider(this.my.sprite.player, this.groundLayer);
