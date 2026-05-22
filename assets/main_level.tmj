@@ -175,8 +175,8 @@
                  "type":"",
                  "visible":true,
                  "width":16,
-                 "x":304,
-                 "y":240
+                 "x":0,
+                 "y":224
                 }, 
                 {
                  "gid":34,
@@ -372,6 +372,18 @@
                  "width":16,
                  "x":16,
                  "y":304
+                }, 
+                {
+                 "height":59.3333333333334,
+                 "id":29,
+                 "name":"deathbox",
+                 "opacity":1,
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":1297.33333333333,
+                 "x":-4.00000000000007,
+                 "y":339.333333333333
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -434,9 +446,9 @@
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":34.6666666666667,
-                 "x":320.666666666667,
-                 "y":160.166666666667
+                 "width":50.6666666666667,
+                 "x":322.333333333333,
+                 "y":161.666666666667
                 }, 
                 {
                  "height":77.3333333333333,
@@ -457,9 +469,9 @@
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":30.3333333333334,
-                 "x":288.333333333333,
-                 "y":161
+                 "width":52.3333333333334,
+                 "x":266,
+                 "y":161.333333333333
                 }, 
                 {
                  "height":61.25,
@@ -560,7 +572,7 @@
          "y":0
         }],
  "nextlayerid":9,
- "nextobjectid":29,
+ "nextobjectid":31,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.12.1",

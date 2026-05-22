@@ -74,6 +74,10 @@ export default class Platformer extends Phaser.Scene {
             frame: 30
         })
 
+        this.deathbox = this.map.createFromObjects("Objects", {
+            name: "deathbox"
+        })
+
         // this.jumpmen = this.map.createFromObjects("Objects", {
         //     name: "jumpman",
         //     key: "tilemap_sheet",
@@ -85,12 +89,14 @@ export default class Platformer extends Phaser.Scene {
         // them into Arcade Physics sprites (STATIC_BODY, so they don't move) 
         this.physics.world.enable(this.flowers, Phaser.Physics.Arcade.STATIC_BODY);
         this.physics.world.enable(this.endpoint, Phaser.Physics.Arcade.STATIC_BODY);
+        this.physics.world.enable(this.deathbox, Phaser.Physics.Arcade.STATIC_BODY);
         //this.physics.world.enable(this.jumpmen, Phaser.Physics.Arcade.STATIC_BODY);
 
         // Create a Phaser group out of the array this.coins
         // This will be used for collision detection below.
         this.endpointGroup = this.add.group(this.endpoint);
         this.flowerGroup = this.add.group(this.flowers);
+        this.deathboxGroup = this.add.group(this.deathbox);
         // this.jumpmenGroup = this.add.group(this.jumpmen);
 
 
@@ -107,7 +113,7 @@ export default class Platformer extends Phaser.Scene {
         // set up player avatar
         this.my.sprite.player = this.physics.add.sprite(this.spawnpoint[0].x, this.spawnpoint[0].y, "platformer_characters", "tile_0000.png");
         this.my.sprite.player.setSize(10,20);
-        this.my.sprite.player.setCollideWorldBounds(true);
+        this.my.sprite.player.setCollideWorldBounds(false);
 
         // Enable collision handling
         this.physics.add.collider(this.my.sprite.player, this.groundLayer);
@@ -165,6 +171,22 @@ export default class Platformer extends Phaser.Scene {
                 });
             }
         });
+
+        this.physics.add.overlap(this.my.sprite.player, this.deathboxGroup, (obj1, obj2) => {
+            if(!this.isPlaying) {
+                this.isPlaying = true;
+                this.deathSFX.play();
+
+                this.time.delayedCall(400, () => {
+                    this.my.sprite.player.setVelocityY(0);
+                    this.my.sprite.player.setPosition(this.spawnpoint[0].x, this.spawnpoint[0].y);
+                    this.isPlaying = false;
+                    this.cameras.main.pan(this.my.sprite.player.x, this.my.sprite.player.y, 300, "Power2", true);
+                    
+                    this.cameras.main.centerOn(this.my.sprite.player.x, this.my.sprite.player.y);
+                })
+            }
+        })
 
 
         // this.physics.add.overlap(this.my.sprite.player, this.jumpmenGroup, (obj1, obj2) => {
@@ -330,6 +352,7 @@ export default class Platformer extends Phaser.Scene {
 
 
         const onGround = this.my.sprite.player.body.blocked.down;
+        //kinda just didnt use these but it feels nice to play so not gonna use em :P
         let accel;
         let drag;
         if (onGround) {
@@ -339,6 +362,9 @@ export default class Platformer extends Phaser.Scene {
             accel = this.ACCELERATION * 0.6;
             drag = 50;
         }
+        
+
+
         if(this.cursors.left.isDown) {
             if (this.audioReady && this.walkLeftSFX && this.my.sprite.player.body.blocked.down) {
                 if(this.walkRightSFX) {
@@ -417,6 +443,23 @@ export default class Platformer extends Phaser.Scene {
             }
         }
 
+
+        //player walljump
+        if(this.my.sprite.player.body.blocked.right && Phaser.Input.Keyboard.JustDown(this.cursors.up)) {
+            this.doubleJumpSFX.play();
+            this.my.sprite.player.body.setVelocityY(this.JUMP_VELOCITY);
+            this.my.sprite.player.body.setVelocityX(-150);
+
+            //we wall jumpin
+        }
+        else if(this.my.sprite.player.body.blocked.left && Phaser.Input.Keyboard.JustDown(this.cursors.up)) {
+            this.doubleJumpSFX.play();
+            this.my.sprite.player.body.setVelocityY(this.JUMP_VELOCITY);
+            this.my.sprite.player.body.setVelocityX(150);
+        }
+
+
+
         // player jump
         // note that we need body.blocked rather than body.touching b/c the former applies to tilemap tiles and the latter to the "ground"
         if(!this.my.sprite.player.body.blocked.down) {
@@ -480,6 +523,9 @@ export default class Platformer extends Phaser.Scene {
         if(Phaser.Input.Keyboard.JustDown(this.rKey)) {
             this.scene.restart();
         }
+
+        
+        
     }
 
     createAudio() {
@@ -492,6 +538,7 @@ export default class Platformer extends Phaser.Scene {
         this.dashSFX = this.sound.add("dashSFX", { volume: 0.2 });
         this.jumpSFX = this.sound.add("jumpSFX", { volume: 0.2 });
         this.doubleJumpSFX = this.sound.add("doubleJumpSFX", { volume: 0.2 });
+        this.deathSFX = this.sound.add("deathSFX", { volume: 0.2 });
     }
 }
 
