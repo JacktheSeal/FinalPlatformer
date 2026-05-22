@@ -288,6 +288,8 @@ export default class Platformer extends Phaser.Scene {
 
         });
 
+        this.my.vfx.jump.stop();
+
         this.my.vfx.dashLeft = this.add.particles(5, 5, "white_pixel", {
             speed: {min: 100, max: 250},
             angle: {min: 330, max: 390},
@@ -296,6 +298,8 @@ export default class Platformer extends Phaser.Scene {
             gravityY: 200,
 
         });
+
+        this.my.vfx.dashLeft.stop();
 
         this.my.vfx.dashRight = this.add.particles(-5, 5, "white_pixel", {
             speed: {min: 100, max: 250},
@@ -306,7 +310,7 @@ export default class Platformer extends Phaser.Scene {
 
         });
 
-        this.my.vfx.walking.stop();
+        this.my.vfx.dashRight.stop();
 
 
         //create camera group
