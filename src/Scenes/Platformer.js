@@ -60,6 +60,10 @@ export default class Platformer extends Phaser.Scene {
             frame: 33
         });
 
+        //puzzle requirements
+        this.flowersCollected = 0;
+        this.flowersNeeded = this.flowers.length;
+
         this.spawnpoint = this.map.createFromObjects("Objects", {
             name: "spawnpoint",
             key: "tilemap_sheet",
@@ -113,6 +117,13 @@ export default class Platformer extends Phaser.Scene {
         this.my.sprite.player.setSize(10,20);
         this.my.sprite.player.setCollideWorldBounds(false);
 
+        this.physics.world.setBounds(
+            0,
+            0,
+            this.map.widthInPixels,
+            this.map.heightInPixels
+        );
+
 
         // collide with left/right/top only
         this.my.sprite.player.setCollideWorldBounds(true);
@@ -129,6 +140,8 @@ export default class Platformer extends Phaser.Scene {
         // Handle collision detection with flowers
         this.pickupCounter = 0;
         this.physics.add.overlap(this.my.sprite.player, this.flowerGroup, (obj1, obj2) => {
+
+            this.flowersCollected++;
 
             const index = this.pickupCounter % 4;
             console.log(index);
@@ -150,17 +163,17 @@ export default class Platformer extends Phaser.Scene {
         // Handle collision detection with endpoint
         this.isPlaying = false; // flag to prevent multiple overlaps from triggering multiple scene transitions
         this.physics.add.overlap(this.my.sprite.player, this.endpointGroup, (obj1, obj2) => {
-            if (!this.isPlaying) {
+            if (!this.isPlaying && this.flowersCollected == this.flowersNeeded) {
                 this.isPlaying = true;
                 const text = this.add.text(
-                    this.game.config.width / 2,
-                    this.game.config.height / 2,
+                    1120,
+                    150,
                     "LEVEL COMPLETE",
                     {
-                        fontSize: "32px",
-                        color: "#dfdf3e",
+                        fontSize: "28px",
+                        color: "#81c74c",
                         stroke: "#000",
-                        strokeThickness: 8
+                        strokeThickness: 4
                     }
                 ).setOrigin(0.5);
         
@@ -175,6 +188,34 @@ export default class Platformer extends Phaser.Scene {
         
                 this.time.delayedCall(2500, () => {
                     this.scene.start("End");
+                });
+            }
+            else if (!this.isPlaying && this.flowersCollected != this.flowersNeeded) {
+                this.isPlaying = true;
+                const text = this.add.text(
+                    1120,
+                    150,
+                    "Collect all flowers to proceed!",
+                    {
+                        fontSize: "12px",
+                        color: "#81c74c",
+                        stroke: "#000",
+                        strokeThickness: 4
+                    }
+                ).setOrigin(0.5);
+        
+                text.setScale(0.2);
+        
+                this.tweens.add({
+                    targets: text,
+                    scale: 1.2,
+                    duration: 600,
+                    ease: "Back.Out",
+                    onComplete: () => {
+                        this.time.delayedCall(1000, () => {
+                            text.destroy();
+                        });
+                    }
                 });
             }
         });
@@ -195,12 +236,6 @@ export default class Platformer extends Phaser.Scene {
             }
         })
 
-
-        // this.physics.add.overlap(this.my.sprite.player, this.jumpmenGroup, (obj1, obj2) => {
-        //     obj2.destroy(); // remove jumpman on overlap
-        //     this.my.sprite.player.body.setVelocityY(this.JUMP_VELOCITY * 1.5); // extra jump boost
-        // });
-
         // set up Phaser-provided cursor key input
         this.cursors = this.input.keyboard.createCursorKeys();
 
@@ -212,7 +247,6 @@ export default class Platformer extends Phaser.Scene {
             this.physics.world.debugGraphic.clear()
         }, this);
 
-        // TODO: Add movement vfx here
         // movement vfx
 
         this.my.vfx.walking = this.add.particles(0, 5, "white_pixel",  {
@@ -223,6 +257,26 @@ export default class Platformer extends Phaser.Scene {
             // TODO: Try: gravityY: -400,
             gravityY: -10,
             alpha: {start: 1, end: 0.1}, 
+        });
+
+        this.my.vfx.walking.stop();
+
+        this.my.vfx.jump = this.add.particles(0, 5, "grey_pixel", {
+            speed: {min: 100, max: 250},
+            angle: {min: 60, max: 120},
+            scale: {start: 0.12, end: 0},
+            lifespan: 200,
+            gravityY: 200,
+
+        });
+
+        this.my.vfx.dash = this.add.particles(0, 5, "white_pixel", {
+            speed: {min: 100, max: 250},
+            angle: {min: 190, max: 270},
+            scale: {start: 0.12, end: 0},
+            lifespan: 200,
+            gravityY: 200,
+
         });
 
         this.my.vfx.walking.stop();
@@ -456,6 +510,7 @@ export default class Platformer extends Phaser.Scene {
             this.doubleJumpSFX.play();
             this.my.sprite.player.body.setVelocityY(this.JUMP_VELOCITY);
             this.my.sprite.player.body.setVelocityX(-150);
+            this.my.vfx.jump.explode(20, this.my.sprite.player.x, this.my.sprite.player.y);
 
             //we wall jumpin
         }
@@ -463,6 +518,7 @@ export default class Platformer extends Phaser.Scene {
             this.doubleJumpSFX.play();
             this.my.sprite.player.body.setVelocityY(this.JUMP_VELOCITY);
             this.my.sprite.player.body.setVelocityX(150);
+            this.my.vfx.jump.explode(20, this.my.sprite.player.x, this.my.sprite.player.y);
         }
 
 
@@ -477,12 +533,14 @@ export default class Platformer extends Phaser.Scene {
         }
         if(this.my.sprite.player.body.blocked.down && Phaser.Input.Keyboard.JustDown(this.cursors.up)) {
             this.jumpSFX.play();
+            this.my.vfx.jump.explode(20, this.my.sprite.player.x, this.my.sprite.player.y);
             this.my.sprite.player.body.setVelocityY(this.JUMP_VELOCITY);
         }
 
         //double jump
         if(!this.my.sprite.player.body.blocked.down && Phaser.Input.Keyboard.JustDown(this.cursors.up) && !this.doubleJumpUsed) {
             this.doubleJumpSFX.play();
+            this.my.vfx.jump.explode(20, this.my.sprite.player.x, this.my.sprite.player.y);
             this.my.sprite.player.body.setVelocityY(this.JUMP_VELOCITY);
             this.doubleJumpUsed = true;
         }
@@ -504,9 +562,11 @@ export default class Platformer extends Phaser.Scene {
             if (this.my.sprite.player.flipX) {
                 // facing left
                 this.my.sprite.player.setVelocityX(700);
+                this.my.vfx.dashLeft.explode(20, this.my.sprite.player.x, this.my.sprite.player.y);
             } else {
                 // facing right
                 this.my.sprite.player.setVelocityX(-700);
+                this.my.vfx.dashRight.explode(20, this.my.sprite.player.x, this.my.sprite.player.y);
             }
 
             // dash squash/stretch effect
