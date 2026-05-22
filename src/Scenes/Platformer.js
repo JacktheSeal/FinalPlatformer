@@ -105,7 +105,7 @@ export default class Platformer extends Phaser.Scene {
         this.anims.create({
             key: 'spin',
             frames: this.anims.generateFrameNumbers('tilemap_sheet', { start: 32, end: 33 }),
-            frameRate: 6,
+            frameRate: 2,
             repeat: -1
         })
         for (let flower of this.flowerGroup.getChildren()) {
@@ -262,17 +262,26 @@ export default class Platformer extends Phaser.Scene {
         this.my.vfx.walking.stop();
 
         this.my.vfx.jump = this.add.particles(0, 5, "grey_pixel", {
-            speed: {min: 100, max: 250},
+            speed: {min: 50, max: 150},
             angle: {min: 60, max: 120},
+            scale: {start: 0.12, end: 0},
+            lifespan: 200,
+            gravityY: 100,
+
+        });
+
+        this.my.vfx.dashLeft = this.add.particles(5, 5, "white_pixel", {
+            speed: {min: 100, max: 250},
+            angle: {min: 330, max: 390},
             scale: {start: 0.12, end: 0},
             lifespan: 200,
             gravityY: 200,
 
         });
 
-        this.my.vfx.dash = this.add.particles(0, 5, "white_pixel", {
+        this.my.vfx.dashRight = this.add.particles(-5, 5, "white_pixel", {
             speed: {min: 100, max: 250},
-            angle: {min: 190, max: 270},
+            angle: {min: 150, max: 210},
             scale: {start: 0.12, end: 0},
             lifespan: 200,
             gravityY: 200,
@@ -560,13 +569,15 @@ export default class Platformer extends Phaser.Scene {
 
             // dash direction
             if (this.my.sprite.player.flipX) {
-                // facing left
-                this.my.sprite.player.setVelocityX(700);
-                this.my.vfx.dashLeft.explode(20, this.my.sprite.player.x, this.my.sprite.player.y);
-            } else {
                 // facing right
-                this.my.sprite.player.setVelocityX(-700);
+                this.my.sprite.player.setVelocityX(700);
+                console.log("dashing left");
                 this.my.vfx.dashRight.explode(20, this.my.sprite.player.x, this.my.sprite.player.y);
+            } else {
+                // facing left
+                this.my.sprite.player.setVelocityX(-700);
+                console.log("dashing right");
+                this.my.vfx.dashLeft.explode(20, this.my.sprite.player.x, this.my.sprite.player.y);
             }
 
             // dash squash/stretch effect
